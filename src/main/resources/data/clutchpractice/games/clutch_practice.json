@@ -1,0 +1,7 @@
+{
+	"type": "clutchpractice:clutch_practice",
+	"name": "Clutch Practice",
+	"map": {
+		"id": "clutchpractice:end_city"
+	}
+}

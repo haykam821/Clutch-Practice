@@ -1,0 +1,25 @@
+{
+	"schemaVersion": 1,
+	"id": "clutchpractice",
+	"version": "${version}",
+	"name": "Clutch Practice",
+	"description": "A practice game for various types of clutches.",
+	"authors": [
+		"haykam821"
+	],
+	"contact": {
+		"homepage": "https://github.com/haykam821/Clutch-Practice#readme",
+		"issues": "https://github.com/haykam821/Clutch-Practice/issues"
+	},
+	"entrypoints": {
+		"main": [
+			"io.github.haykam821.clutchpractice.Main"
+		]
+	},
+	"license": "MIT",
+	"icon": "assets/clutchpractice/icon.png",
+	"depends": {
+		"fabricloader": ">=0.4.0",
+		"plasmid": ">=0.4.0"
+	}
+}
