@@ -8,6 +8,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemUsageContext;
 import net.minecraft.item.Items;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
@@ -17,25 +18,26 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.GameMode;
 import net.minecraft.world.GameRules;
-import xyz.nucleoid.fantasy.BubbleWorldConfig;
+import xyz.nucleoid.fantasy.RuntimeWorldConfig;
+import xyz.nucleoid.plasmid.game.GameActivity;
 import xyz.nucleoid.plasmid.game.GameCloseReason;
-import xyz.nucleoid.plasmid.game.GameLogic;
 import xyz.nucleoid.plasmid.game.GameOpenContext;
 import xyz.nucleoid.plasmid.game.GameOpenProcedure;
 import xyz.nucleoid.plasmid.game.GameSpace;
-import xyz.nucleoid.plasmid.game.event.GameTickListener;
-import xyz.nucleoid.plasmid.game.event.PlaceBlockListener;
-import xyz.nucleoid.plasmid.game.event.PlayerAddListener;
-import xyz.nucleoid.plasmid.game.event.PlayerDamageListener;
-import xyz.nucleoid.plasmid.game.event.PlayerDeathListener;
-import xyz.nucleoid.plasmid.game.event.PlayerRemoveListener;
-import xyz.nucleoid.plasmid.game.event.UseBlockListener;
-import xyz.nucleoid.plasmid.game.rule.GameRule;
-import xyz.nucleoid.plasmid.game.rule.RuleResult;
+import xyz.nucleoid.plasmid.game.event.GameActivityEvents;
+import xyz.nucleoid.plasmid.game.event.GamePlayerEvents;
+import xyz.nucleoid.plasmid.game.player.PlayerOffer;
+import xyz.nucleoid.plasmid.game.player.PlayerOfferResult;
+import xyz.nucleoid.plasmid.game.rule.GameRuleType;
 import xyz.nucleoid.plasmid.util.ItemStackBuilder;
+import xyz.nucleoid.stimuli.event.block.BlockPlaceEvent;
+import xyz.nucleoid.stimuli.event.block.BlockUseEvent;
+import xyz.nucleoid.stimuli.event.player.PlayerDamageEvent;
+import xyz.nucleoid.stimuli.event.player.PlayerDeathEvent;
 
-public class ClutchPracticeGame implements GameTickListener, PlaceBlockListener, PlayerAddListener, PlayerDamageListener, PlayerDeathListener, PlayerRemoveListener, UseBlockListener {
+public class ClutchPracticeGame implements GameActivityEvents.Tick, BlockPlaceEvent.Before, GamePlayerEvents.Offer, PlayerDamageEvent, PlayerDeathEvent, GamePlayerEvents.Remove, BlockUseEvent {
 	private final GameSpace gameSpace;
+	private final ServerWorld world;
 	private final ClutchPracticeMap map;
 	private final ClutchPracticeConfig config;
 
@@ -43,51 +45,50 @@ public class ClutchPracticeGame implements GameTickListener, PlaceBlockListener,
 	private int streak = 0;
 	private int maxStreak = 0;
 
-	public ClutchPracticeGame(GameSpace gameSpace, ClutchPracticeMap map, ClutchPracticeConfig config) {
+	public ClutchPracticeGame(GameSpace gameSpace, ServerWorld world, ClutchPracticeMap map, ClutchPracticeConfig config) {
 		this.gameSpace = gameSpace;
+		this.world = world;
 		this.map = map;
 		this.config = config;
 	}
 
-	public static void setRules(GameLogic game) {
-		game.setRule(GameRule.BLOCK_DROPS, RuleResult.DENY);
-		game.setRule(GameRule.BREAK_BLOCKS, RuleResult.DENY);
-		game.setRule(GameRule.CRAFTING, RuleResult.DENY);
-		game.setRule(GameRule.DISMOUNT_VEHICLE, RuleResult.DENY);
-		game.setRule(GameRule.FALL_DAMAGE, RuleResult.ALLOW);
-		game.setRule(GameRule.HUNGER, RuleResult.DENY);
-		game.setRule(GameRule.INTERACTION, RuleResult.ALLOW);
-		game.setRule(GameRule.PLACE_BLOCKS, RuleResult.ALLOW);
-		game.setRule(GameRule.PLAYER_PROJECTILE_KNOCKBACK, RuleResult.DENY);
-		game.setRule(GameRule.PORTALS, RuleResult.DENY);
-		game.setRule(GameRule.PVP, RuleResult.DENY);
-		game.setRule(GameRule.TEAM_CHAT, RuleResult.DENY);
-		game.setRule(GameRule.THROW_ITEMS, RuleResult.DENY);
-		game.setRule(GameRule.TRIDENTS_LOYAL_IN_VOID, RuleResult.DENY);
-		game.setRule(GameRule.UNSTABLE_TNT, RuleResult.DENY);
+	public static void setRules(GameActivity activity) {
+		activity.deny(GameRuleType.BLOCK_DROPS);
+		activity.deny(GameRuleType.BREAK_BLOCKS);
+		activity.deny(GameRuleType.CRAFTING);
+		activity.deny(GameRuleType.DISMOUNT_VEHICLE);
+		activity.allow(GameRuleType.FALL_DAMAGE);
+		activity.deny(GameRuleType.HUNGER);
+		activity.allow(GameRuleType.INTERACTION);
+		activity.allow(GameRuleType.PLACE_BLOCKS);
+		activity.deny(GameRuleType.PLAYER_PROJECTILE_KNOCKBACK);
+		activity.deny(GameRuleType.PORTALS);
+		activity.deny(GameRuleType.PVP);
+		activity.deny(GameRuleType.THROW_ITEMS);
+		activity.deny(GameRuleType.TRIDENTS_LOYAL_IN_VOID);
+		activity.deny(GameRuleType.UNSTABLE_TNT);
 	}
 
 	public static GameOpenProcedure open(GameOpenContext<ClutchPracticeConfig> context) {
-		ClutchPracticeConfig config = context.getConfig();
-		ClutchPracticeMap map = new ClutchPracticeMapBuilder(config.getMapConfig()).build();
+		ClutchPracticeConfig config = context.config();
+		ClutchPracticeMap map = new ClutchPracticeMapBuilder(config.getMapConfig()).build(context.server());
 
-		BubbleWorldConfig worldConfig = new BubbleWorldConfig()
-			.setGenerator(map.createGenerator(context.getServer()))
-			.setDefaultGameMode(GameMode.ADVENTURE)
+		RuntimeWorldConfig worldConfig = new RuntimeWorldConfig()
+			.setGenerator(map.createGenerator(context.server()))
 			.setGameRule(GameRules.DO_TILE_DROPS, false);
 
-		return context.createOpenProcedure(worldConfig, game -> {
-			ClutchPracticeGame phase = new ClutchPracticeGame(game.getSpace(), map, config);
-			ClutchPracticeGame.setRules(game);
+		return context.openWithWorld(worldConfig, (activity, world) -> {
+			ClutchPracticeGame phase = new ClutchPracticeGame(activity.getGameSpace(), world, map, config);
+			ClutchPracticeGame.setRules(activity);
 
 			// Listeners
-			game.on(GameTickListener.EVENT, phase);
-			game.on(PlaceBlockListener.EVENT, phase);
-			game.on(PlayerAddListener.EVENT, phase);
-			game.on(PlayerDamageListener.EVENT, phase);
-			game.on(PlayerDeathListener.EVENT, phase);
-			game.on(PlayerRemoveListener.EVENT, phase);
-			game.on(UseBlockListener.EVENT, phase);
+			activity.listen(GameActivityEvents.TICK, phase);
+			activity.listen(BlockPlaceEvent.BEFORE, phase);
+			activity.listen(GamePlayerEvents.OFFER, phase);
+			activity.listen(PlayerDamageEvent.EVENT, phase);
+			activity.listen(PlayerDeathEvent.EVENT, phase);
+			activity.listen(GamePlayerEvents.REMOVE, phase);
+			activity.listen(BlockUseEvent.EVENT, phase);
 		});
 	}
 
@@ -96,22 +97,25 @@ public class ClutchPracticeGame implements GameTickListener, PlaceBlockListener,
 		if (this.mainPlayer == null) return;
 
 		if (this.map.getExit().contains(this.mainPlayer.getPos())) {
-			this.gameSpace.removePlayer(this.mainPlayer);
+			this.gameSpace.getPlayers().kick(this.mainPlayer);
 		}
 		this.map.respawnIfOutOfBounds(this.mainPlayer);
 
-		if (this.mainPlayer.isOnGround() && this.mainPlayer.getY() == this.map.getArea().getMin().getY() + 1) {
+		if (this.mainPlayer.isOnGround() && this.mainPlayer.getY() == this.map.getArea().min().getY() + 1) {
 			this.resetAndUpdateStreak(ActionResult.SUCCESS);
 		}
 	}
 
-	public void onAddPlayer(ServerPlayerEntity player) {
-		if (this.mainPlayer == null) {
-			this.mainPlayer = player;
-			this.reset();
-		} else {
-			player.setGameMode(GameMode.SPECTATOR);
-		}
+	public PlayerOfferResult onOfferPlayer(PlayerOffer offer) {
+		return offer.accept(this.world, this.map.getSpawn()).and(() -> {
+			if (this.mainPlayer == null) {
+				this.mainPlayer = offer.player();
+				this.reset(false);
+				offer.player().changeGameMode(GameMode.ADVENTURE);
+			} else {
+				offer.player().changeGameMode(GameMode.SPECTATOR);
+			}
+		});
 	}
 
 	public ActionResult onDamage(ServerPlayerEntity player, DamageSource source, float damage) {
@@ -121,7 +125,7 @@ public class ClutchPracticeGame implements GameTickListener, PlaceBlockListener,
 		return ActionResult.FAIL;
 	}
 
-	public ActionResult onPlace(ServerPlayerEntity player, BlockPos pos, BlockState state, ItemUsageContext context) {
+	public ActionResult onPlace(ServerPlayerEntity player, ServerWorld world, BlockPos pos, BlockState state, ItemUsageContext context) {
 		return this.getAreaPosResult(pos);
 	}
 
@@ -138,7 +142,7 @@ public class ClutchPracticeGame implements GameTickListener, PlaceBlockListener,
 		}
 	}
 
-	public ActionResult onUseBlock(ServerPlayerEntity player, Hand hand, BlockHitResult hitResult) {
+	public ActionResult onUse(ServerPlayerEntity player, Hand hand, BlockHitResult hitResult) {
 		return this.getAreaPosResult(hitResult.getBlockPos());
 	}
 
@@ -159,23 +163,25 @@ public class ClutchPracticeGame implements GameTickListener, PlaceBlockListener,
 			this.streak = 0;
 		}
 
-		this.reset();
+		this.reset(true);
 	}
 
 	private void sendSound(SoundEvent sound) {
-		this.gameSpace.getPlayers().sendSound(sound, SoundCategory.PLAYERS, 1, 1);
+		this.gameSpace.getPlayers().playSound(sound, SoundCategory.PLAYERS, 1, 1);
 	}
 
-	private void reset() {
-		map.spawn(this.mainPlayer);
-		BlockState baseState = map.clearArea(this.gameSpace.getWorld());
+	private void reset(boolean spawn) {
+		if (spawn) {
+			map.spawn(this.mainPlayer);
+		}
+		BlockState baseState = map.clearArea(this.world);
 
 		ItemStack ladder = ItemStackBuilder.of(Items.LADDER)
 			.addCanPlaceOn(baseState.getBlock())
 			.build();
 
-		this.mainPlayer.inventory.clear();
-		this.mainPlayer.inventory.offerOrDrop(this.gameSpace.getWorld(), ladder);
+		this.mainPlayer.getInventory().clear();
+		this.mainPlayer.getInventory().offerOrDrop(ladder);
 
 		this.mainPlayer.setExperienceLevel(this.streak);
 	}

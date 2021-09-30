@@ -5,7 +5,7 @@ import java.util.Random;
 import net.fabricmc.fabric.api.util.NbtType;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -15,12 +15,13 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.gen.chunk.ChunkGenerator;
-import xyz.nucleoid.plasmid.map.template.MapTemplate;
-import xyz.nucleoid.plasmid.map.template.TemplateChunkGenerator;
-import xyz.nucleoid.plasmid.map.template.TemplateRegion;
-import xyz.nucleoid.plasmid.util.BlockBounds;
+import xyz.nucleoid.map_templates.BlockBounds;
+import xyz.nucleoid.map_templates.MapTemplate;
+import xyz.nucleoid.map_templates.TemplateRegion;
+import xyz.nucleoid.plasmid.game.world.generator.TemplateChunkGenerator;
 
 public class ClutchPracticeMap {
+	private static final BlockBounds EMPTY_BOUNDS = BlockBounds.ofBlock(BlockPos.ORIGIN);
 	private static final BlockState AIR = Blocks.AIR.getDefaultState();
 
 	private final ClutchPracticeMapConfig config;
@@ -33,7 +34,7 @@ public class ClutchPracticeMap {
 		this.config = config;
 		this.template = template;
 
-		this.box = this.template.getBounds().toBox();
+		this.box = this.template.getBounds().asBox();
 
 		this.area = ClutchPracticeMap.getBounds(template, "area");
 		this.exit = ClutchPracticeMap.getBox(template, "exit");
@@ -45,7 +46,7 @@ public class ClutchPracticeMap {
 
 	public BlockState clearArea(ServerWorld world) {
 		Random random = world.getRandom();
-		int minY = this.area.getMin().getY();
+		int minY = this.area.min().getY();
 
 		for (BlockPos pos : this.area) {
 			if (pos.getY() == minY) {
@@ -56,8 +57,8 @@ public class ClutchPracticeMap {
 		}
 
 		// Place base
-		int baseX = MathHelper.nextInt(random, this.area.getMin().getX(), this.area.getMax().getX());
-		int baseZ = MathHelper.nextInt(random, this.area.getMin().getZ(), this.area.getMax().getZ());
+		int baseX = MathHelper.nextInt(random, this.area.min().getX(), this.area.max().getX());
+		int baseZ = MathHelper.nextInt(random, this.area.min().getZ(), this.area.max().getZ());
 
 		BlockPos basePos = new BlockPos(baseX, minY + 1, baseZ);
 		BlockState baseState = this.config.getBaseProvider().getBlockState(random, basePos);
@@ -70,10 +71,10 @@ public class ClutchPracticeMap {
 		return this.exit;
 	}
 
-	private Vec3d getSpawn() {
+	public Vec3d getSpawn() {
 		TemplateRegion spawn = this.template.getMetadata().getFirstRegion("spawn");
 		if (spawn != null) {
-			return spawn.getBounds().getCenterBottom();
+			return spawn.getBounds().centerBottom();
 		}
 
 		return new Vec3d(0.5, 76, 0.5);
@@ -82,7 +83,7 @@ public class ClutchPracticeMap {
 	private Vec2f getSpawnRotation() {
 		TemplateRegion spawn = this.template.getMetadata().getFirstRegion("spawn");
 		if (spawn != null) {
-			ListTag tag = spawn.getData().getList("Rotation", NbtType.FLOAT);
+			NbtList tag = spawn.getData().getList("Rotation", NbtType.FLOAT);
 			return new Vec2f(tag.getFloat(0), tag.getFloat(1));
 		}
 
@@ -111,11 +112,11 @@ public class ClutchPracticeMap {
 
 	private static BlockBounds getBounds(MapTemplate template, String marker) {
 		BlockBounds bounds = template.getMetadata().getFirstRegionBounds(marker);
-		return bounds == null ? BlockBounds.EMPTY : bounds;
+		return bounds == null ? EMPTY_BOUNDS : bounds;
 	}
 
 	private static Box getBox(MapTemplate template, String marker) {
 		BlockBounds bounds = template.getMetadata().getFirstRegionBounds(marker);
-		return bounds == null ? new Box(Vec3d.ZERO, Vec3d.ZERO) : bounds.toBox();
+		return bounds == null ? new Box(Vec3d.ZERO, Vec3d.ZERO) : bounds.asBox();
 	}
 }
