@@ -6,14 +6,13 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.block.Blocks;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.gen.stateprovider.BlockStateProvider;
-import net.minecraft.world.gen.stateprovider.SimpleBlockStateProvider;
 
 public class ClutchPracticeMapConfig {
 	public static final Codec<ClutchPracticeMapConfig> CODEC = RecordCodecBuilder.create(instance -> {
 		return instance.group(
 			Identifier.CODEC.fieldOf("id").forGetter(ClutchPracticeMapConfig::getId),
-			BlockStateProvider.TYPE_CODEC.optionalFieldOf("floor_provider", new SimpleBlockStateProvider(Blocks.END_STONE_BRICKS.getDefaultState())).forGetter(ClutchPracticeMapConfig::getFloorProvider),
-			BlockStateProvider.TYPE_CODEC.optionalFieldOf("base_provider", new SimpleBlockStateProvider(Blocks.SMOOTH_STONE.getDefaultState())).forGetter(ClutchPracticeMapConfig::getBaseProvider)
+			BlockStateProvider.TYPE_CODEC.optionalFieldOf("floor_provider", BlockStateProvider.of(Blocks.END_STONE_BRICKS)).forGetter(ClutchPracticeMapConfig::getFloorProvider),
+			BlockStateProvider.TYPE_CODEC.optionalFieldOf("base_provider", BlockStateProvider.of(Blocks.SMOOTH_STONE)).forGetter(ClutchPracticeMapConfig::getBaseProvider)
 		).apply(instance, ClutchPracticeMapConfig::new);
 	});
 
