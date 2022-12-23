@@ -3,7 +3,7 @@ package io.github.haykam821.clutchpractice.game.map;
 import java.io.IOException;
 
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.text.TranslatableText;
+import net.minecraft.text.Text;
 import xyz.nucleoid.map_templates.MapTemplate;
 import xyz.nucleoid.map_templates.MapTemplateSerializer;
 import xyz.nucleoid.plasmid.game.GameOpenException;
@@ -20,7 +20,7 @@ public class ClutchPracticeMapBuilder {
 			MapTemplate template = MapTemplateSerializer.loadFromResource(server, this.config.getId());
 			return new ClutchPracticeMap(this.config, template);
 		} catch (IOException exception) {
-			throw new GameOpenException(new TranslatableText("text.clutchpractice.template_load_failed"), exception);
+			throw new GameOpenException(Text.translatable("text.clutchpractice.template_load_failed"), exception);
 		}
 	}
 }
