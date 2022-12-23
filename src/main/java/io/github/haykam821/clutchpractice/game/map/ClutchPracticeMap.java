@@ -49,7 +49,7 @@ public class ClutchPracticeMap {
 
 		for (BlockPos pos : this.area) {
 			if (pos.getY() == minY) {
-				world.setBlockState(pos, this.config.getFloorProvider().getBlockState(random, pos));
+				world.setBlockState(pos, this.config.getFloorProvider().get(random, pos));
 			} else {
 				world.setBlockState(pos, AIR);
 			}
@@ -60,7 +60,7 @@ public class ClutchPracticeMap {
 		int baseZ = MathHelper.nextInt(random, this.area.min().getZ(), this.area.max().getZ());
 
 		BlockPos basePos = new BlockPos(baseX, minY + 1, baseZ);
-		BlockState baseState = this.config.getBaseProvider().getBlockState(random, basePos);
+		BlockState baseState = this.config.getBaseProvider().get(random, basePos);
 
 		world.setBlockState(basePos, baseState);
 		return baseState;
