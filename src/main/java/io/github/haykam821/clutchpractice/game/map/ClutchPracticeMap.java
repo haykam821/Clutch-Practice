@@ -1,7 +1,5 @@
 package io.github.haykam821.clutchpractice.game.map;
 
-import java.util.Random;
-
 import net.fabricmc.fabric.api.util.NbtType;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -14,6 +12,7 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.random.Random;
 import net.minecraft.world.gen.chunk.ChunkGenerator;
 import xyz.nucleoid.map_templates.BlockBounds;
 import xyz.nucleoid.map_templates.MapTemplate;
@@ -50,7 +49,7 @@ public class ClutchPracticeMap {
 
 		for (BlockPos pos : this.area) {
 			if (pos.getY() == minY) {
-				world.setBlockState(pos, this.config.getFloorProvider().getBlockState(random, pos));
+				world.setBlockState(pos, this.config.getFloorProvider().get(random, pos));
 			} else {
 				world.setBlockState(pos, AIR);
 			}
@@ -61,7 +60,7 @@ public class ClutchPracticeMap {
 		int baseZ = MathHelper.nextInt(random, this.area.min().getZ(), this.area.max().getZ());
 
 		BlockPos basePos = new BlockPos(baseX, minY + 1, baseZ);
-		BlockState baseState = this.config.getBaseProvider().getBlockState(random, basePos);
+		BlockState baseState = this.config.getBaseProvider().get(random, basePos);
 
 		world.setBlockState(basePos, baseState);
 		return baseState;
