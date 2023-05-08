@@ -1,5 +1,6 @@
 {
 	"type": "clutchpractice:clutch_practice",
+	"icon": "minecraft:ladder",
 	"map": {
 		"id": "clutchpractice:end_city"
 	}
