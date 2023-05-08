@@ -1,8 +1,8 @@
 package io.github.haykam821.clutchpractice.game.map;
 
-import net.fabricmc.fabric.api.util.NbtType;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -82,7 +82,7 @@ public class ClutchPracticeMap {
 	private Vec2f getSpawnRotation() {
 		TemplateRegion spawn = this.template.getMetadata().getFirstRegion("spawn");
 		if (spawn != null) {
-			NbtList tag = spawn.getData().getList("Rotation", NbtType.FLOAT);
+			NbtList tag = spawn.getData().getList("Rotation", NbtElement.FLOAT_TYPE);
 			return new Vec2f(tag.getFloat(0), tag.getFloat(1));
 		}
 
