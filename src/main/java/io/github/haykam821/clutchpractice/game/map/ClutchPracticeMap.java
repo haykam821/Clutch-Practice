@@ -93,7 +93,7 @@ public class ClutchPracticeMap {
 		Vec3d spawn = this.getSpawn();
 		Vec2f rotation = this.getSpawnRotation();
 
-		player.teleport(player.getWorld(), spawn.getX(), spawn.getY(), spawn.getZ(), rotation.x, rotation.y);
+		player.teleport(player.getServerWorld(), spawn.getX(), spawn.getY(), spawn.getZ(), rotation.x, rotation.y);
 	}
 
 	public boolean respawnIfOutOfBounds(ServerPlayerEntity player) {
