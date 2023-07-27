@@ -13,6 +13,6 @@ public class WallPlacementClutchType extends PlacementClutchType {
 	@Override
 	public void clearArea(ServerWorld world, ClutchPracticeMap map, TrackedBlockStateProvider floor, TrackedBlockStateProvider base) {
 		map.clearArea(world, floor);
-		map.placeRandomBase(world, base, 1);
+		map.placeRandomBase(world, base, 1, 2);
 	}
 }

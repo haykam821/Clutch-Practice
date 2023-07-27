@@ -10,6 +10,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
@@ -64,16 +65,24 @@ public class ClutchPracticeMap {
 	}
 
 	public void placeRandomBase(ServerWorld world, TrackedBlockStateProvider base, int offsetY) {
+		this.placeRandomBase(world, base, offsetY, offsetY);
+	}
+
+	public void placeRandomBase(ServerWorld world, TrackedBlockStateProvider base, int minOffsetY, int maxOffsetY) {
 		Random random = world.getRandom();
 		int minY = this.area.min().getY();
 
 		int baseX = MathHelper.nextInt(random, this.area.min().getX(), this.area.max().getX());
 		int baseZ = MathHelper.nextInt(random, this.area.min().getZ(), this.area.max().getZ());
 
-		BlockPos basePos = new BlockPos(baseX, minY + offsetY, baseZ);
-		BlockState baseState = base.get(random, basePos);
+		BlockPos.Mutable pos = new BlockPos.Mutable(baseX, minY + minOffsetY, baseZ);
 
-		world.setBlockState(basePos, baseState);
+		while (pos.getY() <= minY + maxOffsetY) {
+			BlockState baseState = base.get(random, pos);
+			world.setBlockState(pos, baseState);
+
+			pos.move(Direction.UP);
+		}
 	}
 
 	public TrackedBlockStateProvider getTrackedFloorProvider() {
