@@ -1,12 +1,15 @@
 package io.github.haykam821.clutchpractice.game;
 
+import io.github.haykam821.clutchpractice.TrackedBlockStateProvider;
+import io.github.haykam821.clutchpractice.clutch.ClutchType;
+import io.github.haykam821.clutchpractice.clutch.ClutchTypes;
+import io.github.haykam821.clutchpractice.game.map.ClutchDisplay;
 import io.github.haykam821.clutchpractice.game.map.ClutchPracticeMap;
 import io.github.haykam821.clutchpractice.game.map.ClutchPracticeMapBuilder;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.item.ItemStack;
+import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemUsageContext;
-import net.minecraft.item.Items;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
@@ -16,9 +19,11 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
 import net.minecraft.world.GameRules;
 import xyz.nucleoid.fantasy.RuntimeWorldConfig;
+import xyz.nucleoid.map_templates.BlockBounds;
 import xyz.nucleoid.plasmid.game.GameActivity;
 import xyz.nucleoid.plasmid.game.GameCloseReason;
 import xyz.nucleoid.plasmid.game.GameOpenContext;
@@ -29,7 +34,6 @@ import xyz.nucleoid.plasmid.game.event.GamePlayerEvents;
 import xyz.nucleoid.plasmid.game.player.PlayerOffer;
 import xyz.nucleoid.plasmid.game.player.PlayerOfferResult;
 import xyz.nucleoid.plasmid.game.rule.GameRuleType;
-import xyz.nucleoid.plasmid.util.ItemStackBuilder;
 import xyz.nucleoid.stimuli.event.block.BlockPlaceEvent;
 import xyz.nucleoid.stimuli.event.block.BlockUseEvent;
 import xyz.nucleoid.stimuli.event.player.PlayerDamageEvent;
@@ -40,8 +44,10 @@ public class ClutchPracticeGame implements GameActivityEvents.Tick, BlockPlaceEv
 	private final ServerWorld world;
 	private final ClutchPracticeMap map;
 	private final ClutchPracticeConfig config;
+	private final ClutchDisplay clutchDisplay;
 
 	private ServerPlayerEntity mainPlayer;
+	private ClutchType clutchType = ClutchTypes.RANDOM;
 	private int streak = 0;
 	private int maxStreak = 0;
 
@@ -50,6 +56,9 @@ public class ClutchPracticeGame implements GameActivityEvents.Tick, BlockPlaceEv
 		this.world = world;
 		this.map = map;
 		this.config = config;
+
+		Vec3d clutchDisplayPos = this.map.getClutchDisplayPos();
+		this.clutchDisplay = clutchDisplayPos == null ? null : new ClutchDisplay(world, clutchDisplayPos, this.clutchType);
 	}
 
 	public static void setRules(GameActivity activity) {
@@ -143,7 +152,26 @@ public class ClutchPracticeGame implements GameActivityEvents.Tick, BlockPlaceEv
 	}
 
 	public ActionResult onUse(ServerPlayerEntity player, Hand hand, BlockHitResult hitResult) {
-		return this.getAreaPosResult(hitResult.getBlockPos());
+		BlockBounds clutchSelector = this.map.getClutchSelector();
+		BlockPos pos = hitResult.getBlockPos();
+
+		if (hand == Hand.MAIN_HAND && clutchSelector != null && clutchSelector.contains(pos)) {
+			this.clutchType = ClutchTypes.getNext(this.clutchType);
+			this.sendSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP);
+
+			this.streak = 0;
+			this.maxStreak = 0;
+
+			this.reset(false);
+
+			if (this.clutchDisplay != null) {
+				this.clutchDisplay.setType(this.clutchType);
+			}
+
+			return ActionResult.SUCCESS;
+		}
+
+		return this.getAreaPosResult(pos);
 	}
 
 	// Utilities
@@ -174,14 +202,17 @@ public class ClutchPracticeGame implements GameActivityEvents.Tick, BlockPlaceEv
 		if (spawn) {
 			map.spawn(this.mainPlayer);
 		}
-		BlockState baseState = map.clearArea(this.world);
 
-		ItemStack ladder = ItemStackBuilder.of(Items.LADDER)
-			.addCanPlaceOn(baseState.getBlock())
-			.build();
+		TrackedBlockStateProvider floor = this.map.getTrackedFloorProvider();
+		TrackedBlockStateProvider base = this.map.getTrackedBaseProvider();
 
-		this.mainPlayer.getInventory().clear();
-		this.mainPlayer.getInventory().offerOrDrop(ladder);
+		ClutchType clutchType = this.clutchType.resolve(this.world.getRandom());
+		clutchType.clearArea(this.world, this.map, floor, base);
+
+		PlayerInventory inventory = this.mainPlayer.getInventory();
+
+		inventory.clear();
+		clutchType.addItems(inventory::offerOrDrop, floor.getStates(), base.getStates());
 
 		this.mainPlayer.setExperienceLevel(this.streak);
 	}

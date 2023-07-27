@@ -1,5 +1,6 @@
 package io.github.haykam821.clutchpractice.game.map;
 
+import io.github.haykam821.clutchpractice.TrackedBlockStateProvider;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.nbt.NbtElement;
@@ -29,6 +30,9 @@ public class ClutchPracticeMap {
 	private final BlockBounds area;
 	private final Box exit;
 
+	private final BlockBounds clutchSelector;
+	private final Vec3d clutchDisplayPos;
+
 	public ClutchPracticeMap(ClutchPracticeMapConfig config, MapTemplate template) {
 		this.config = config;
 		this.template = template;
@@ -37,37 +41,59 @@ public class ClutchPracticeMap {
 
 		this.area = ClutchPracticeMap.getBounds(template, "area");
 		this.exit = ClutchPracticeMap.getBox(template, "exit");
+
+		this.clutchSelector = ClutchPracticeMap.getBounds(template, "clutch_selector");
+		this.clutchDisplayPos = this.clutchSelector == null ? null : this.clutchSelector.center();
 	}
 
 	public BlockBounds getArea() {
 		return this.area;
 	}
 
-	public BlockState clearArea(ServerWorld world) {
+	public void clearArea(ServerWorld world, TrackedBlockStateProvider floor) {
 		Random random = world.getRandom();
 		int minY = this.area.min().getY();
 
 		for (BlockPos pos : this.area) {
 			if (pos.getY() == minY) {
-				world.setBlockState(pos, this.config.getFloorProvider().get(random, pos));
+				world.setBlockState(pos, floor.get(random, pos));
 			} else {
 				world.setBlockState(pos, AIR);
 			}
 		}
+	}
 
-		// Place base
+	public void placeRandomBase(ServerWorld world, TrackedBlockStateProvider base, int offsetY) {
+		Random random = world.getRandom();
+		int minY = this.area.min().getY();
+
 		int baseX = MathHelper.nextInt(random, this.area.min().getX(), this.area.max().getX());
 		int baseZ = MathHelper.nextInt(random, this.area.min().getZ(), this.area.max().getZ());
 
-		BlockPos basePos = new BlockPos(baseX, minY + 1, baseZ);
-		BlockState baseState = this.config.getBaseProvider().get(random, basePos);
+		BlockPos basePos = new BlockPos(baseX, minY + offsetY, baseZ);
+		BlockState baseState = base.get(random, basePos);
 
 		world.setBlockState(basePos, baseState);
-		return baseState;
+	}
+
+	public TrackedBlockStateProvider getTrackedFloorProvider() {
+		return new TrackedBlockStateProvider(this.config.getFloorProvider());
+	}
+
+	public TrackedBlockStateProvider getTrackedBaseProvider() {
+		return new TrackedBlockStateProvider(this.config.getBaseProvider());
 	}
 
 	public Box getExit() {
 		return this.exit;
+	}
+
+	public BlockBounds getClutchSelector() {
+		return this.clutchSelector;
+	}
+
+	public Vec3d getClutchDisplayPos() {
+		return this.clutchDisplayPos;
 	}
 
 	public Vec3d getSpawn() {
