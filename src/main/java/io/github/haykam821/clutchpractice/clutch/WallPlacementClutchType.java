@@ -2,12 +2,12 @@ package io.github.haykam821.clutchpractice.clutch;
 
 import io.github.haykam821.clutchpractice.TrackedBlockStateProvider;
 import io.github.haykam821.clutchpractice.game.map.ClutchPracticeMap;
-import net.minecraft.block.Block;
+import net.minecraft.item.ItemConvertible;
 import net.minecraft.server.world.ServerWorld;
 
 public class WallPlacementClutchType extends PlacementClutchType {
-	protected WallPlacementClutchType(Block block) {
-		super(block);
+	protected WallPlacementClutchType(ItemConvertible item) {
+		super(item);
 	}
 
 	@Override
