@@ -67,6 +67,7 @@ public class ClutchPracticeGame implements GameActivityEvents.Tick, BlockPlaceEv
 		activity.deny(GameRuleType.CRAFTING);
 		activity.deny(GameRuleType.DISMOUNT_VEHICLE);
 		activity.allow(GameRuleType.FALL_DAMAGE);
+		activity.deny(GameRuleType.FLUID_FLOW);
 		activity.deny(GameRuleType.HUNGER);
 		activity.allow(GameRuleType.INTERACTION);
 		activity.allow(GameRuleType.PLACE_BLOCKS);

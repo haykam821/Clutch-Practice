@@ -5,30 +5,30 @@ import java.util.function.Consumer;
 
 import io.github.haykam821.clutchpractice.TrackedBlockStateProvider;
 import io.github.haykam821.clutchpractice.game.map.ClutchPracticeMap;
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.item.ItemConvertible;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import xyz.nucleoid.plasmid.util.ItemStackBuilder;
 
 public class PlacementClutchType extends ClutchType {
-	private final Block block;
+	private final ItemStack stack;
 
-	protected PlacementClutchType(Block block) {
-		super(block.asItem().getDefaultStack());
+	protected PlacementClutchType(ItemConvertible item) {
+		super(new ItemStack(item));
 
-		this.block = block;
+		this.stack = new ItemStack(item);
 	}
 
 	@Override
 	protected Text createName() {
-		return this.block.getName();
+		return this.stack.getName();
 	}
 
 	@Override
 	public void addItems(Consumer<ItemStack> adder, Set<BlockState> floor, Set<BlockState> base) {
-		ItemStackBuilder builder = ItemStackBuilder.of(this.block);
+		ItemStackBuilder builder = ItemStackBuilder.of(this.stack);
 
 		for (BlockState state : base) {
 			builder.addCanPlaceOn(state.getBlock());
