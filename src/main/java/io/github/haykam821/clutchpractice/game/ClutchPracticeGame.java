@@ -110,7 +110,7 @@ public class ClutchPracticeGame implements GameActivityEvents.Tick, BlockPlaceEv
 		}
 		this.map.respawnIfOutOfBounds(this.mainPlayer);
 
-		if (this.mainPlayer.isOnGround() && this.mainPlayer.getY() == this.map.getArea().min().getY() + 1) {
+		if (this.isOnClutchGround(this.mainPlayer)) {
 			this.resetAndUpdateStreak(ActionResult.SUCCESS);
 		}
 	}
@@ -175,6 +175,13 @@ public class ClutchPracticeGame implements GameActivityEvents.Tick, BlockPlaceEv
 	}
 
 	// Utilities
+	private boolean isOnClutchGround(ServerPlayerEntity player) {
+		if (!player.isOnGround()) return false;
+
+		BlockBounds area = this.map.getArea();
+		return player.getY() == area.min().getY() + 1 || area.asBox().intersects(player.getBoundingBox());
+	}
+
 	private void resetAndUpdateStreak(ActionResult result) {
 		map.spawn(this.mainPlayer);
 
