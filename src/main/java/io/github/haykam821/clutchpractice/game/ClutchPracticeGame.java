@@ -153,23 +153,26 @@ public class ClutchPracticeGame implements GameActivityEvents.Tick, BlockPlaceEv
 	}
 
 	public ActionResult onUse(ServerPlayerEntity player, Hand hand, BlockHitResult hitResult) {
-		BlockBounds clutchSelector = this.map.getClutchSelector();
 		BlockPos pos = hitResult.getBlockPos();
 
-		if (hand == Hand.MAIN_HAND && clutchSelector != null && clutchSelector.contains(pos)) {
-			this.clutchType = ClutchTypes.getNext(this.clutchType);
-			this.sendSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP);
+		if (player == this.mainPlayer && hand == Hand.MAIN_HAND) {
+			BlockBounds clutchSelector = this.map.getClutchSelector();
 
-			this.streak = 0;
-			this.maxStreak = 0;
+			if (clutchSelector != null && clutchSelector.contains(pos)) {
+				this.clutchType = ClutchTypes.getNext(this.clutchType);
+				this.sendSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP);
 
-			this.reset(false);
+				this.streak = 0;
+				this.maxStreak = 0;
 
-			if (this.clutchDisplay != null) {
-				this.clutchDisplay.setType(this.clutchType);
+				this.reset(false);
+
+				if (this.clutchDisplay != null) {
+					this.clutchDisplay.setType(this.clutchType);
+				}
+
+				return ActionResult.SUCCESS;
 			}
-
-			return ActionResult.SUCCESS;
 		}
 
 		return this.getAreaPosResult(pos);
