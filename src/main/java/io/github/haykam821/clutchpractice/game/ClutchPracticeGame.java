@@ -24,22 +24,25 @@ import net.minecraft.world.GameMode;
 import net.minecraft.world.GameRules;
 import xyz.nucleoid.fantasy.RuntimeWorldConfig;
 import xyz.nucleoid.map_templates.BlockBounds;
-import xyz.nucleoid.plasmid.game.GameActivity;
-import xyz.nucleoid.plasmid.game.GameCloseReason;
-import xyz.nucleoid.plasmid.game.GameOpenContext;
-import xyz.nucleoid.plasmid.game.GameOpenProcedure;
-import xyz.nucleoid.plasmid.game.GameSpace;
-import xyz.nucleoid.plasmid.game.event.GameActivityEvents;
-import xyz.nucleoid.plasmid.game.event.GamePlayerEvents;
-import xyz.nucleoid.plasmid.game.player.PlayerOffer;
-import xyz.nucleoid.plasmid.game.player.PlayerOfferResult;
-import xyz.nucleoid.plasmid.game.rule.GameRuleType;
+import xyz.nucleoid.plasmid.api.game.GameActivity;
+import xyz.nucleoid.plasmid.api.game.GameCloseReason;
+import xyz.nucleoid.plasmid.api.game.GameOpenContext;
+import xyz.nucleoid.plasmid.api.game.GameOpenProcedure;
+import xyz.nucleoid.plasmid.api.game.GameSpace;
+import xyz.nucleoid.plasmid.api.game.event.GameActivityEvents;
+import xyz.nucleoid.plasmid.api.game.event.GamePlayerEvents;
+import xyz.nucleoid.plasmid.api.game.player.JoinAcceptor;
+import xyz.nucleoid.plasmid.api.game.player.JoinAcceptorResult;
+import xyz.nucleoid.plasmid.api.game.player.JoinOffer;
+import xyz.nucleoid.plasmid.api.game.player.JoinOfferResult;
+import xyz.nucleoid.plasmid.api.game.rule.GameRuleType;
+import xyz.nucleoid.stimuli.event.EventResult;
 import xyz.nucleoid.stimuli.event.block.BlockPlaceEvent;
 import xyz.nucleoid.stimuli.event.block.BlockUseEvent;
 import xyz.nucleoid.stimuli.event.player.PlayerDamageEvent;
 import xyz.nucleoid.stimuli.event.player.PlayerDeathEvent;
 
-public class ClutchPracticeGame implements GameActivityEvents.Tick, BlockPlaceEvent.Before, GamePlayerEvents.Offer, PlayerDamageEvent, PlayerDeathEvent, GamePlayerEvents.Remove, BlockUseEvent {
+public class ClutchPracticeGame implements GameActivityEvents.Tick, BlockPlaceEvent.Before, GamePlayerEvents.Accept, GamePlayerEvents.Offer, PlayerDamageEvent, PlayerDeathEvent, GamePlayerEvents.Remove, BlockUseEvent {
 	private final GameSpace gameSpace;
 	private final ServerWorld world;
 	private final ClutchPracticeMap map;
@@ -94,6 +97,7 @@ public class ClutchPracticeGame implements GameActivityEvents.Tick, BlockPlaceEv
 			// Listeners
 			activity.listen(GameActivityEvents.TICK, phase);
 			activity.listen(BlockPlaceEvent.BEFORE, phase);
+			activity.listen(GamePlayerEvents.ACCEPT, phase);
 			activity.listen(GamePlayerEvents.OFFER, phase);
 			activity.listen(PlayerDamageEvent.EVENT, phase);
 			activity.listen(PlayerDeathEvent.EVENT, phase);
@@ -112,38 +116,42 @@ public class ClutchPracticeGame implements GameActivityEvents.Tick, BlockPlaceEv
 		this.map.respawnIfOutOfBounds(this.mainPlayer);
 
 		if (this.isOnClutchGround(this.mainPlayer)) {
-			this.resetAndUpdateStreak(ActionResult.SUCCESS);
+			this.resetAndUpdateStreak(ClutchResult.SUCCESS);
 		}
 	}
 
-	public PlayerOfferResult onOfferPlayer(PlayerOffer offer) {
-		return offer.accept(this.world, this.map.getSpawn()).and(() -> {
+	public JoinAcceptorResult onAcceptPlayers(JoinAcceptor acceptor) {
+		return acceptor.teleport(this.world, this.map.getSpawn()).thenRunForEach(player -> {
 			if (this.mainPlayer == null) {
-				this.mainPlayer = offer.player();
+				this.mainPlayer = player;
 				this.reset(false);
-				offer.player().changeGameMode(GameMode.ADVENTURE);
+				player.changeGameMode(GameMode.ADVENTURE);
 			} else {
-				offer.player().changeGameMode(GameMode.SPECTATOR);
+				player.changeGameMode(GameMode.SPECTATOR);
 			}
 		});
 	}
 
-	public ActionResult onDamage(ServerPlayerEntity player, DamageSource source, float damage) {
-		if (player == this.mainPlayer) {
-			this.resetAndUpdateStreak(ActionResult.FAIL);
-		}
-		return ActionResult.FAIL;
+	public JoinOfferResult onOfferPlayers(JoinOffer offer) {
+		return this.mainPlayer == null ? offer.acceptParticipants() : offer.acceptSpectators();
 	}
 
-	public ActionResult onPlace(ServerPlayerEntity player, ServerWorld world, BlockPos pos, BlockState state, ItemUsageContext context) {
+	public EventResult onDamage(ServerPlayerEntity player, DamageSource source, float damage) {
+		if (player == this.mainPlayer) {
+			this.resetAndUpdateStreak(ClutchResult.FAIL);
+		}
+		return EventResult.DENY;
+	}
+
+	public EventResult onPlace(ServerPlayerEntity player, ServerWorld world, BlockPos pos, BlockState state, ItemUsageContext context) {
 		return this.getAreaPosResult(pos);
 	}
 
-	public ActionResult onDeath(ServerPlayerEntity player, DamageSource source) {
+	public EventResult onDeath(ServerPlayerEntity player, DamageSource source) {
 		if (player == this.mainPlayer) {
-			this.resetAndUpdateStreak(ActionResult.FAIL);
+			this.resetAndUpdateStreak(ClutchResult.FAIL);
 		}
-		return ActionResult.FAIL;
+		return EventResult.DENY;
 	}
 
 	public void onRemovePlayer(ServerPlayerEntity player) {
@@ -171,11 +179,11 @@ public class ClutchPracticeGame implements GameActivityEvents.Tick, BlockPlaceEv
 					this.clutchDisplay.setType(this.clutchType);
 				}
 
-				return ActionResult.SUCCESS;
+				return ActionResult.SUCCESS_SERVER;
 			}
 		}
 
-		return this.getAreaPosResult(pos);
+		return this.getAreaPosResult(pos).asActionResult();
 	}
 
 	// Utilities
@@ -186,10 +194,10 @@ public class ClutchPracticeGame implements GameActivityEvents.Tick, BlockPlaceEv
 		return player.getY() == area.min().getY() + 1 || area.asBox().intersects(player.getBoundingBox());
 	}
 
-	private void resetAndUpdateStreak(ActionResult result) {
+	private void resetAndUpdateStreak(ClutchResult result) {
 		map.spawn(this.mainPlayer);
 
-		if (result == ActionResult.SUCCESS) {
+		if (result == ClutchResult.SUCCESS) {
 			this.streak += 1;
 			if (this.streak <= this.maxStreak) {
 				this.sendSound(SoundEvents.ENTITY_VILLAGER_YES);
@@ -197,7 +205,7 @@ public class ClutchPracticeGame implements GameActivityEvents.Tick, BlockPlaceEv
 				this.maxStreak = this.streak;
 				this.sendSound(SoundEvents.ENTITY_PLAYER_LEVELUP);
 			}
-		} else if (result == ActionResult.FAIL) {
+		} else if (result == ClutchResult.FAIL) {
 			this.sendSound(SoundEvents.ENTITY_VILLAGER_NO);
 			this.streak = 0;
 		}
@@ -223,15 +231,15 @@ public class ClutchPracticeGame implements GameActivityEvents.Tick, BlockPlaceEv
 		PlayerInventory inventory = this.mainPlayer.getInventory();
 
 		inventory.clear();
-		clutchType.addItems(inventory::offerOrDrop, floor.getStates(), base.getStates());
+		clutchType.addItems(inventory::offerOrDrop, floor.getStates(), base.getStates(), this.world.getRegistryManager());
 
 		this.mainPlayer.setExperienceLevel(this.streak);
 	}
 
-	private ActionResult getAreaPosResult(BlockPos pos) {
+	private EventResult getAreaPosResult(BlockPos pos) {
 		if (this.map.getArea().contains(pos)) {
-			return ActionResult.PASS;
+			return EventResult.PASS;
 		}
-		return ActionResult.FAIL;
+		return EventResult.DENY;
 	}
 }

@@ -10,6 +10,7 @@ import io.github.haykam821.clutchpractice.game.map.ClutchPracticeMap;
 import net.minecraft.block.BlockState;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.random.Random;
@@ -28,7 +29,7 @@ public class RandomClutchType extends ClutchType {
 	}
 
 	@Override
-	public void addItems(Consumer<ItemStack> adder, Set<BlockState> floor, Set<BlockState> base) {
+	public void addItems(Consumer<ItemStack> adder, Set<BlockState> floor, Set<BlockState> base, RegistryWrapper.WrapperLookup registries) {
 		throw new UnsupportedOperationException();
 	}
 

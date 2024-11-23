@@ -7,7 +7,7 @@ import io.github.haykam821.clutchpractice.Main;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.Items;
 import net.minecraft.util.Identifier;
-import xyz.nucleoid.plasmid.registry.TinyRegistry;
+import xyz.nucleoid.plasmid.api.util.TinyRegistry;
 
 public final class ClutchTypes {
 	public static final TinyRegistry<ClutchType> REGISTRY = TinyRegistry.create();
@@ -29,7 +29,7 @@ public final class ClutchTypes {
 	}
 
 	private static ClutchType register(String path, ClutchType type) {
-		Identifier id = new Identifier(Main.MOD_ID, path);
+		Identifier id = Main.identifier(path);
 		REGISTRY.register(id, type);
 
 		return type;

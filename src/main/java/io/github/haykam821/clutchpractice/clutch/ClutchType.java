@@ -7,6 +7,7 @@ import io.github.haykam821.clutchpractice.TrackedBlockStateProvider;
 import io.github.haykam821.clutchpractice.game.map.ClutchPracticeMap;
 import net.minecraft.block.BlockState;
 import net.minecraft.item.ItemStack;
+import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -42,7 +43,7 @@ public abstract class ClutchType {
 		return this;
 	}
 
-	public abstract void addItems(Consumer<ItemStack> adder, Set<BlockState> floor, Set<BlockState> base);
+	public abstract void addItems(Consumer<ItemStack> adder, Set<BlockState> floor, Set<BlockState> base, RegistryWrapper.WrapperLookup registries);
 
 	public abstract void clearArea(ServerWorld world, ClutchPracticeMap map, TrackedBlockStateProvider floor, TrackedBlockStateProvider base);
 }

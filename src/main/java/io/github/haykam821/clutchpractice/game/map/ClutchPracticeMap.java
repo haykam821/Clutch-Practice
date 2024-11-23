@@ -1,5 +1,7 @@
 package io.github.haykam821.clutchpractice.game.map;
 
+import java.util.Set;
+
 import io.github.haykam821.clutchpractice.TrackedBlockStateProvider;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -19,7 +21,7 @@ import net.minecraft.world.gen.chunk.ChunkGenerator;
 import xyz.nucleoid.map_templates.BlockBounds;
 import xyz.nucleoid.map_templates.MapTemplate;
 import xyz.nucleoid.map_templates.TemplateRegion;
-import xyz.nucleoid.plasmid.game.world.generator.TemplateChunkGenerator;
+import xyz.nucleoid.plasmid.api.game.world.generator.TemplateChunkGenerator;
 
 public class ClutchPracticeMap {
 	private static final BlockBounds EMPTY_BOUNDS = BlockBounds.ofBlock(BlockPos.ORIGIN);
@@ -128,7 +130,7 @@ public class ClutchPracticeMap {
 		Vec3d spawn = this.getSpawn();
 		Vec2f rotation = this.getSpawnRotation();
 
-		player.teleport(player.getServerWorld(), spawn.getX(), spawn.getY(), spawn.getZ(), rotation.x, rotation.y);
+		player.teleport(player.getServerWorld(), spawn.getX(), spawn.getY(), spawn.getZ(), Set.of(), rotation.x, rotation.y, true);
 	}
 
 	public boolean respawnIfOutOfBounds(ServerPlayerEntity player) {
